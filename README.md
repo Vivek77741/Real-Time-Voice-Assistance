@@ -3,7 +3,7 @@
 
 An interactive, AI-powered Voice Assistant desktop application built with Python and PyQt5. Seamlessly integrates voice recognition, natural language AI, web search, and real-time information retrieval to deliver an engaging assistant experience.
 
----
+
 
 ## ✨ Features
 
