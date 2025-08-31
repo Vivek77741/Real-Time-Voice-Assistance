@@ -19,6 +19,14 @@ from sumy.summarizers.luhn import LuhnSummarizer
 from sumy.summarizers.edmundson import EdmundsonSummarizer
 from sumy.summarizers.text_rank import TextRankSummarizer
 
+GEMINI_API_KEY = ''
+SERPAPI_API_KEY = ''
+GROQ_API_KEY = ''
+
+genai.configure(api_key=GEMINI_API_KEY)
+recognizer = sr.Recognizer()
+client = Groq(api_key=GROQ_API_KEY)
+
 class SearchAndSummarize:
     def __init__(self, api_key):
         self.api_key = api_key
@@ -34,9 +42,7 @@ class SearchAndSummarize:
 
     def summarize(self, text, max_sentences=2, method='lsa'):
         parser = PlaintextParser.from_string(text, Tokenizer("english"))
-        if method == 'lsa':
-            summarizer = LsaSummarizer()
-        elif method == 'lex_rank':
+        if method == 'lex_rank':
             summarizer = LexRankSummarizer()
         elif method == 'luhn':
             summarizer = LuhnSummarizer()
@@ -45,7 +51,7 @@ class SearchAndSummarize:
         elif method == 'text_rank':
             summarizer = TextRankSummarizer()
         else:
-            summarizer = LsaSummarizer() 
+            summarizer = LsaSummarizer()
         summary = summarizer(parser.document, max_sentences)
         return ' '.join([str(sentence) for sentence in summary])
 
@@ -54,28 +60,14 @@ class SearchAndSummarize:
         if 'organic_results' in result:
             detailed_results = result['organic_results']
             summaries = []
-            for res in detailed_results[:3]:  # Get top 3 results
-                content = res.get('snippet', '')  # Using snippet for simplicity
+            for res in detailed_results[:3]:
+                content = res.get('snippet', '')
                 if content:
                     summary = self.summarize(content, method=method)
                     summaries.append(summary)
             return ' '.join(summaries)
         return "No results found."
 
-# Configure API keys
-GEMINI_API_KEY = 'AIzaSyBdAuI0a0fe82_xiFXFcNQDg4ahIIhvRtY'
-SERPAPI_API_KEY = '1c02b4f17797cf73b553a9d4c2c02a90d1ba045c561ec4ba7b21a20adbd0ac04'
-GROQ_API_KEY = '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'
-
-# Initialize APIs
-genai.configure(api_key=GEMINI_API_KEY)
-recognizer = sr.Recognizer()
-engine = pyttsx3.init()
-
-# Initialize Groq client
-client = Groq(api_key=GROQ_API_KEY)
-
-# Helper Functions
 def get_answer_box(query):
     print("Parsed query: ", query)
     search = GoogleSearch({
@@ -83,24 +75,54 @@ def get_answer_box(query):
         "api_key": SERPAPI_API_KEY
     })
     result = search.get_dict()
-
-    if 'answer_box' not in result:
-        return None  # Return None if no answer box is found
-    
-    return result['answer_box']
+    return result.get('answer_box')
 
 def is_real_time_query(query):
     real_time_keywords = [
-        'score', 'price', 'weather', 'live', 'current', 'today', 'result',
-        'update', 'news', 'stock', 'temperature', 'traffic', 'forecast',
-        'match', 'standings', 'alert', 'report', 'happening', 'breaking',
-        'event', 'now', 'recent', 'trending', 'live feed', 'scorecard',
-        'tomorrow', 'yesterday', 'latest', 'instant', 'ongoing', 'real-time',
-        'right now', 'immediate', 'hot', 'flash', 'buzz', 'alert', 'minutes ago',
-        'ongoing', 'currently', 'developing', 'direct', 'real-time update', 'headline',
-        'minute-by-minute', 'continuous', 'streaming', 'live broadcast', 'now happening',
-        'up-to-date', 'emergency', 'news flash', 'quick update', 'real-time news','recently',
-        'up-to-the-minute', 'breaking news', 'instant update', 'real-time feed', 'moment-to-moment','now','till date'
+        'score', 'price', 'weather', 'live', 'current', 'today', 'result', 'now', 'case', 'issue', 'play',
+        'update', 'news', 'stock', 'temperature', 'traffic', 'forecast', 'playing', 'will', 'movie', 'collections',
+        'match', 'standings', 'alert', 'report', 'happening', 'breaking', '2024', '2025', '2023', 'ranking',
+        'event', 'recent', 'trending', 'live feed', 'scorecard', 'currently',
+        'tomorrow', 'yesterday', 'latest', 'instant', 'ongoing', 'real-time', 'daily', 'earthquake',
+        'right now', 'immediate', 'hot', 'flash', 'buzz', 'minutes ago',
+        'developing', 'direct', 'real-time update', 'headline', 'minute-by-minute', 'continuous',
+        'streaming', 'live broadcast', 'now happening', 'incident', 'up-to-date', 'emergency',
+        'news flash', 'quick update', 'real-time news', 'recently', 'future', 'acting',
+        'up-to-the-minute', 'breaking news', 'instant update', 'real-time feed', 'moment-to-moment', 'till date', 'suggest',
+        "headlines", "announcement", "just in", "game", "player", "tournament",
+        "highlight", "injury", "draft", "investment", "cryptocurrency", "commodity", "exchange",
+        "earnings", "storm", "rain", "hurricane", "snow", "flood", "warning", "conditions",
+        "election", "candidate", "campaign", "vote", "policy", "legislation", "debate",
+        "referendum", "scandal", "rally", "release", "patch", "launch", "gadget",
+        "software", "hardware", "feature", "premiere", "show", "episode", "trailer",
+        "casting", "award", "review", "gossip", "season", "viral", "post", "tweet",
+        "hashtag", "share", "like", "comment", "follow", "engagement", "outbreak",
+        "vaccine", "treatment", "study", "research", "trial", "symptoms", "diagnosis",
+        "health", "wellness", "summit", "treaty", "conflict", "agreement", "diplomacy",
+        "foreign", "relations", "ambassador", "sanctions", "crisis", "merger",
+        "acquisition", "strategy", "revenue", "growth", "partnership", "deal",
+        "initiative", "expansion", "festival", "concert", "travel", "dining",
+        "fashion", "style", "trend", "recommendation", "investigation", "arrest",
+        "suspect", "trial", "charge", "conviction", "witness", "evidence",
+        "ceremony", "milestone", "achievement", "message", "communication",
+        "reaction", "response", "follow-up", "challenge", "advocacy",
+        "organization", "solution", "collaboration", "workshop", "discussion",
+        "panel", "conference", "symposium", "expo", "seminar", "webinar",
+        "meeting", 'president', 'minister', 'india', "debut", "phase",
+        "occasion", "gathering", "reunion", "presentation", "showcase",
+        "contest", "competition", "race", "league", "playoff", "charity",
+        "fundraiser", "auction", "raffle", "volunteer", "sponsorship",
+        "service", "project", "outreach", "survey", "poll", "feedback",
+        "statistics", "analysis", "forum", "meetup", "networking",
+        "roundtable", "clinic", "training", "certification", "course",
+        "lecture", "class", "demonstration", "open house", "fair",
+        "carnival", "market", "bazaar", "party", "breakfast", "celebration",
+        "recognition", "honor", "tribute", "memorial", "remembrance",
+        "observance", "commemoration", "dedication", "exhibition",
+        "display", "performance", "act", "piece", "gig", "session",
+        "recital", "preview", "sneak peek", "special", "edition", "version",
+        "upgrade", "enhancement", "improvement", "addition", "development",
+        "evolution", "transformation"
     ]
     return any(word in query.lower() for word in real_time_keywords)
 
@@ -110,7 +132,7 @@ def get_answer_from_groq(prompt):
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            model="llama3-8b-8192"  # Replace with the correct model if needed
+            model="llama3-8b-8192"
         )
         answer = chat_completion.choices[0].message.content
         return answer.strip()
@@ -118,14 +140,87 @@ def get_answer_from_groq(prompt):
         return f"Sorry, there was a problem retrieving the answer: {e}"
 
 def generate_friendly_response(prompt, data):
-    response = genai.GenerativeModel('gemini-1.5-flash').generate_content(
-        f"""
-        Based on this information: {json.dumps(data)[:500]}
-        and this question: {prompt}
-        respond to the user in a friendly manner.
-        """,
-    )
-    return response.candidates[0].content.parts[0].text.strip()
+    try:
+        response = genai.GenerativeModel('gemini-1.5-flash').generate_content(
+            f"""
+            Based on this information: {json.dumps(data)[:500]}
+            and this question: {prompt}
+            respond to the user in a friendly manner.
+            """,
+        )
+        return response.candidates[0].content.parts[0].text.strip()
+    except Exception as e:
+        return f"Sorry, there was an issue generating a friendly response: {e}"
+
+class SpeakingThread(QThread):
+    finished_speaking = pyqtSignal()
+
+    def __init__(self, text_to_speak, parent=None):
+        super().__init__(parent)
+        self.text_to_speak = text_to_speak
+        self.engine = None
+        self._is_running = True
+
+    def run(self):
+        self.engine = pyttsx3.init()
+        self.engine.say(self.text_to_speak)
+        self.engine.runAndWait()
+        self.finished_speaking.emit()
+
+    def stop(self):
+        if self.engine:
+            self.engine.stop()
+        self._is_running = False
+
+class ListeningThread(QThread):
+    update_status = pyqtSignal(str, str)
+    add_conversation_box = pyqtSignal(str, str)
+    start_speaking = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._is_running = True
+
+    def run(self):
+        while self._is_running:
+            with sr.Microphone() as source:
+                recognizer.adjust_for_ambient_noise(source)
+                self.update_status.emit("Listening...", "user")
+                try:
+                    audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
+                except sr.WaitTimeoutError:
+                    if not self._is_running:
+                        break
+                    continue
+
+            try:
+                query = recognizer.recognize_google(audio)
+                self.update_status.emit(f"You said: {query}", "user")
+                self.add_conversation_box.emit(query, "user")
+
+                if is_real_time_query(query):
+                    answer_box = get_answer_box(query)
+                    if answer_box:
+                        response = generate_friendly_response(query, answer_box)
+                    else:
+                        search_summary = SearchAndSummarize(SERPAPI_API_KEY).get_summary(query)
+                        response = generate_friendly_response(query, search_summary)
+                else:
+                    response = get_answer_from_groq(query)
+
+                self.update_status.emit(response, "assistant")
+                self.add_conversation_box.emit(response, "assistant")
+                self.start_speaking.emit(response.replace('*', ''))
+
+            except sr.UnknownValueError:
+                self.update_status.emit("Sorry, I did not catch that.", "assistant")
+            except sr.RequestError as e:
+                self.update_status.emit(f"Could not request results; {e}", "assistant")
+            except Exception as e:
+                self.update_status.emit(f"An error occurred: {e}", "assistant")
+
+    def stop(self):
+        self._is_running = False
 
 class VoiceAssistantApp(QWidget):
     def __init__(self):
@@ -133,6 +228,8 @@ class VoiceAssistantApp(QWidget):
         self.initUI()
         self.setWindowTitle("Voice Assistant")
         self.setGeometry(100, 100, 900, 700)
+        self.listening_thread = None
+        self.speaking_thread = None
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -162,16 +259,14 @@ class VoiceAssistantApp(QWidget):
 
         layout.addLayout(button_layout)
         self.setLayout(layout)
-
-        self.listening_thread = None
         self.setGradientBackground()
 
     def setGradientBackground(self):
         gradient = QLinearGradient(0, 0, 0, self.height())
-        gradient.setColorAt(0.0, QColor(255, 0, 255))
-        gradient.setColorAt(1.0, QColor(0, 255, 255))
+        gradient.setColorAt(0.0, QColor(135, 206, 235))  # Sky Blue
+        gradient.setColorAt(1.0, QColor(25, 25, 112))  # Midnight Blue
         palette = QPalette()
-        palette.setBrush(QPalette.Background, QBrush(gradient))
+        palette.setBrush(QPalette.Window, QBrush(gradient))
         self.setAutoFillBackground(True)
         self.setPalette(palette)
 
@@ -184,29 +279,30 @@ class VoiceAssistantApp(QWidget):
             self.listening_thread = ListeningThread(self)
             self.listening_thread.update_status.connect(self.updateStatus)
             self.listening_thread.add_conversation_box.connect(self.addConversationBox)
+            self.listening_thread.start_speaking.connect(self.speakText)
             self.listening_thread.start()
+            self.start_button.setEnabled(False)
+            self.stop_button.setEnabled(True)
 
     def stopListening(self):
         if self.listening_thread and self.listening_thread.isRunning():
-            self.listening_thread.terminate()
-            self.updateStatus("Stopped listening", "stopped")
+            self.listening_thread.stop()
+            self.listening_thread.wait()
+        self.updateStatus("Stopped listening", "stopped")
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
 
     def stopResponse(self):
-        if self.listening_thread:
-            self.listening_thread.stop_response_flag = True
-            self.stopSpeaking()
-
-    def stopSpeaking(self):
-        engine.stop()
+        if self.speaking_thread and self.speaking_thread.isRunning():
+            self.speaking_thread.stop()
 
     def updateStatus(self, text, role):
         self.status_label.setText(text)
 
     def addConversationBox(self, text, role):
-        box_color = QColor("#c0f0c0") if role == "assistant" else QColor("#f0c0c0")
+        box_color = QColor("#e0f7fa") if role == "assistant" else QColor("#fff9c4")
         frame = QFrame(self.scroll_area_widget)
-        frame.setStyleSheet(f"background-color: {box_color.name()}; border: 1px solid #000000;")
-        frame.setMinimumHeight(120)
+        frame.setStyleSheet(f"background-color: {box_color.name()}; border-radius: 10px; padding: 10px;")
         frame.setFrameShape(QFrame.StyledPanel)
         frame_layout = QVBoxLayout(frame)
 
@@ -217,55 +313,25 @@ class VoiceAssistantApp(QWidget):
         self.scroll_area_layout.insertWidget(self.scroll_area_layout.count() - 1, frame)
         self.scrollToBottom()
 
+    def speakText(self, text):
+        if self.speaking_thread and self.speaking_thread.isRunning():
+            self.speaking_thread.stop()
+            self.speaking_thread.wait()
+
+        self.speaking_thread = SpeakingThread(text)
+        self.speaking_thread.finished.connect(self.on_speaking_finished)
+        self.speaking_thread.start()
+
+    def on_speaking_finished(self):
+        self.updateStatus("Ready for your next question.", "assistant")
+
     def scrollToBottom(self):
         self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
 
-class ListeningThread(QThread):
-    update_status = pyqtSignal(str, str)
-    add_conversation_box = pyqtSignal(str, str)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.stop_response_flag = False
-
-    def run(self):
-        while True:
-            with sr.Microphone() as source:
-                recognizer.adjust_for_ambient_noise(source)
-                self.update_status.emit("Listening...", "user")
-                audio = recognizer.listen(source)
-
-            try:
-                query = recognizer.recognize_google(audio)
-                self.update_status.emit(f"You said: {query}", "user")
-                self.add_conversation_box.emit(query, "user")
-
-                if is_real_time_query(query):
-                    answer_box = get_answer_box(query)
-                    if answer_box:
-                        response = generate_friendly_response(query, answer_box)
-                    else:
-                        search_summary = SearchAndSummarize(SERPAPI_API_KEY).get_summary(query)
-                        response = generate_friendly_response(query, search_summary)
-                else:
-                    response = get_answer_from_groq(query)
-
-                if self.stop_response_flag:
-                    break
-
-                self.update_status.emit(response, "assistant")
-                self.add_conversation_box.emit(response, "assistant")
-                engine.say(response)
-                engine.runAndWait()
-
-                if self.stop_response_flag:
-                    break
-            except sr.UnknownValueError:
-                self.update_status.emit("Sorry, I did not catch that.", "assistant")
-            except sr.RequestError as e:
-                self.update_status.emit(f"Could not request results; {e}", "assistant")
-            except Exception as e:
-                self.update_status.emit(f"An error occurred: {e}", "assistant")
+    def closeEvent(self, event):
+        self.stopListening()
+        self.stopResponse()
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
